@@ -8,14 +8,31 @@ import json
 import datetime
 import boto3
 import pandas as pd
+import psycopg2
+import sys
+import csv
+import subprocess
 
-# Account Info for Logic Monitor. Add your access Key Here.
-AccessId = ""
-AccessKey = ""
-Company = "puppyspot"
+### GLOBAL VARS ####
+# Account Info for Logic Monitor
+AccessId = "LM_ACCESS_ID"
+AccessKey = "LM_ACCESS_KEY"
+Company = "YOUR_COMPANY"
+
+# Creds for AWS
+ID = 'PUT_YOUR_ID_HERE'
+SECRET_ACCESS_KEY = 'PUT_YOUR_SECRET_KEY_HERE'
+
+# Redshift creds
+SCHEMA = 'custom'
+DB_NAME = 'stitch'
+REDSHIFT_HOST = 'ppb-dw02-analytics.chupgbdb0r1u.us-west-2.redshift.amazonaws.com'
+REDSHIFT_USER = 'USER_NAME'
+REDSHIFT_PASS = 'PASSWORD!'
+REDSHIFT_PORT = '5439'
 
 # Set Root Directory for Data. Change this if moving to another Server.
-RootDir = 'C:\Users\SLuengo\PycharmProjects\LogicMonitor'
+RootDir = '/home/ec2-user/logicmonitor-data'
 
 # Setting up Dictionary Objects of each website
 puppyspot_main = {'service': 'puppyspot.com','ID': 1, 'overall_status': 5,'DC':4, 'SF': 23789978}
@@ -27,19 +44,20 @@ leadtacker = {'service': 'leadtracker', 'ID' : 67, 'overall_status': 181661087, 
 # Create dictionary array of each website
 websites = [puppyspot_main, about_us, content, for_sale, leadtacker]
 
+### FUNCTION DEFINITIONS ###
 # This function returns the timestamps needed to make the API calls
 def GetTime():
-    print("Setting up time conditions for API queries...")
+
     now = datetime.datetime.now()
     date = now.strftime("%m-%d-%Y")
 
     today = time.time()
     today = int(today)
-    week_ago = today - 604800
-    three_hours = week_ago + 10800
+    twenty_four_hours_ago = today - 86400
+    three_hours = twenty_four_hours_ago + 10800
 
     timestamps = {
-        'start_time': week_ago,
+        'start_time': twenty_four_hours_ago,
         'three_hours': three_hours,
         'while_end': today,
         'date': date
@@ -49,7 +67,7 @@ def GetTime():
 # This function compiles the data collected from GetData
 # CompileData(compileDataRootDir, resource_path['name'], datapoint, website['service'], timestamps['date'])
 def CompileData(compileDataRootDir, location, status_name, service_name, date):
-    print("Compiling API calls into single dataframe...")
+    print("In Compile Data Function")
     new_times = []
     new_statuses = []
 
@@ -92,11 +110,42 @@ def CompileData(compileDataRootDir, location, status_name, service_name, date):
     file_name = date + '-' + service_name + '-' +  location + '.csv'
     df.to_csv(file_name, index=False)
 
+    checkTable(compileDataRootDir,file_name,location)
     UploadToS3(compileDataRootDir,file_name,location)
+    UploadToRedshift(compileDataRootDir,file_name,location)
+
+def checkTable(compileDataRootDir,file_name,location):
+    # Check for presence of a table
+    # location will be the name of the Table, so overall_status, DC, or SF
+    print("IN checkTable")
+
+    if location == 'overall':
+        table = 'overall'
+    else:
+        table = 'response_time'
+    conn =  psycopg2.connect(dbname=DB_NAME, host=REDSHIFT_HOST, port=REDSHIFT_PORT, user=REDSHIFT_USER, password=REDSHIFT_PASS)
+    cur = conn.cursor()
+    cur.execute("select * from information_schema.tables where table_name=%s", (table,))
+    exists = bool(cur.rowcount)
+    if not exists:
+        createTable(compileDataRootDir,file_name,location,table)
+
+
+def createTable(compileDataRootDir,file_name,location,table):
+    print("IN createTable")
+    print("Creating table = " + table)
+    if location == 'overall':
+        args =['/home/ec2-user/scripts/python/logicmonitor/pgfutter','--host', REDSHIFT_HOST, '--db', DB_NAME, '--port', REDSHIFT_PORT, '--table', 'overall', '--schema', SCHEMA, '--user', REDSHIFT_USER, '--pw', REDSHIFT_PASS, 'csv', file_name]
+    else:
+         args =['/home/ec2-user/scripts/python/logicmonitor/pgfutter','--host', 'ppb-dw02-analytics.chupgbdb0r1u.us-west-2.redshift.amazonaws.com', '--db', 'stitch', '--port', '5439', '--table', 'response_time', '--schema', 'custom', '--user', 'psanalyticsuser', '--pw', 'RPXRt7vL3r!', 'csv', file_name]
+
+
+    subprocess.call(args)
+    print("Finished creating table = " + table)
+
 
 # This function gets the data
 def GetData(websites,timestamps, AccessId, AccessKey, Company):
-    print('Gathering Data from LogicMonitor...')
     for website in websites:
         print(website)
         # Setup resource paths
@@ -117,7 +166,7 @@ def GetData(websites,timestamps, AccessId, AccessKey, Company):
             # This is to set the full length of the loop, how far in time you want to go
             while_end = timestamps['while_end']
 
-            os.chdir(RootDir +'\/' + website['service'] + '\/' + resource_path['name'])
+            os.chdir(RootDir +'/' + website['service'] + '/' + resource_path['name'] + '/')
 
             while three_hours < while_end:
 
@@ -154,12 +203,12 @@ def GetData(websites,timestamps, AccessId, AccessKey, Company):
                     response = json.loads(response.content)
 
                     # Checks for the existence of the week directory
-                    os.chdir(RootDir +'\/' + website['service'] + '\/' + resource_path['name'])
+                    os.chdir(RootDir +'/' + website['service'] + '/' + resource_path['name'])
                     if not os.path.exists(timestamps['date']):
                         os.makedirs(timestamps['date'])
 
                     # Store data into a file
-                    with open(os.path.join(RootDir + '\/' + website['service'] + '\/' + resource_path['name'] + '\/' + timestamps['date'],'website_data'+`number`+ '.json'), 'w') as file:
+                    with open(os.path.join(RootDir + '/' + website['service'] + '/' + resource_path['name'] + '/' + timestamps['date'],'website_data'+`number`+ '.json'), 'w') as file:
                         json.dump(response,file)
 
 
@@ -171,12 +220,12 @@ def GetData(websites,timestamps, AccessId, AccessKey, Company):
                     three_hours = start_date + 10800
 
             # Call Compile Data Function
-            compileDataRootDir = RootDir + '\/' + website['service'] + '\/' + resource_path['name'] + '\/' + timestamps['date']
+            compileDataRootDir = RootDir + '/' + website['service'] + '/' + resource_path['name'] + '/' + timestamps['date']
             CompileData(compileDataRootDir, resource_path['name'], datapoint, website['service'], timestamps['date'])
 
 # This function uploads the csv file into S3
 def UploadToS3(compileDataRootDir,file_name,location):
-    print("Uploading to S3...")
+    print("In Upload to S3")
 
     s3 = boto3.client('s3')
     if location == 'overall':
@@ -189,10 +238,30 @@ def UploadToS3(compileDataRootDir,file_name,location):
     for f in filelist:
         os.remove(os.path.join(compileDataRootDir, f))
 
+def UploadToRedshift(compileDataRootDir,file_name,location):
+    print("In Upload to Redshift")
+    try:
+        conn = psycopg2.connect(dbname=DB_NAME, host=REDSHIFT_HOST, port=REDSHIFT_PORT, user=REDSHIFT_USER, password=REDSHIFT_PASS)
+    except:
+        print("I am unable to connect to the database")
+
+    cur = conn.cursor()
+    # Begin your transaction
+    cur.execute("begin;")
+
+    # Copying file depending on location
+    if location == 'overall':
+        SQL_COMMAND = "copy custom.overall from 's3://logicmonitor-data/overall-status/" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
+        cur.execute(SQL_COMMAND)
+        cur.execute("commit;")
+        print("Copy executed overall table fine!")
+    else:
+        SQL_COMMAND = "copy custom.response_time from 's3://logicmonitor-data/response-time/" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
+        cur.execute(SQL_COMMAND)
+        cur.execute("commit;")
+        print("Copy executed to response-time table fine!")
 
 
 # Program Start
 timestamps = GetTime()
 GetData(websites,timestamps, AccessId, AccessKey, Company)
-
-
