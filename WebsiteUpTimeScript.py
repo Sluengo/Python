@@ -27,8 +27,8 @@ SECRET_ACCESS_KEY = 'PUT_YOUR_SECRET_KEY_HERE'
 SCHEMA = 'custom'
 DB_NAME = 'stitch'
 REDSHIFT_HOST = 'ppb-dw02-analytics.chupgbdb0r1u.us-west-2.redshift.amazonaws.com'
-REDSHIFT_USER = 'USER_NAME'
-REDSHIFT_PASS = 'PASSWORD!'
+REDSHIFT_USER = 'INPUT_USERNAME_HERE'
+REDSHIFT_PASS = 'INPUT_PASSWORD_HERE'
 REDSHIFT_PORT = '5439'
 
 # Set Root Directory for Data. Change this if moving to another Server.
