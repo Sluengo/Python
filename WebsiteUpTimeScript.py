@@ -26,7 +26,7 @@ SECRET_ACCESS_KEY = 'PUT_YOUR_SECRET_KEY_HERE'
 # Redshift creds
 SCHEMA = 'custom'
 DB_NAME = 'stitch'
-REDSHIFT_HOST = 'ppb-dw02-analytics.chupgbdb0r1u.us-west-2.redshift.amazonaws.com'
+REDSHIFT_HOST = 'INPUT_REDIS_HOST_HERE'
 REDSHIFT_USER = 'INPUT_USERNAME_HERE'
 REDSHIFT_PASS = 'INPUT_PASSWORD_HERE'
 REDSHIFT_PORT = '5439'
@@ -238,6 +238,7 @@ def UploadToS3(compileDataRootDir,file_name,location):
     for f in filelist:
         os.remove(os.path.join(compileDataRootDir, f))
 
+# Moves data from S3 into Redshift
 def UploadToRedshift(compileDataRootDir,file_name,location):
     print("In Upload to Redshift")
     try:
