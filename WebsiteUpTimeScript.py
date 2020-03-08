@@ -35,14 +35,14 @@ REDSHIFT_PORT = '5439'
 RootDir = '/home/ec2-user/logicmonitor-data'
 
 # Setting up Dictionary Objects of each website
-puppyspot_main = {'service': 'puppyspot.com','ID': 1, 'overall_status': 5,'DC':4, 'SF': 23789978}
-about_us = {'service': 'puppyspot-about-us', 'ID' : 72, 'overall_status': 247912111, 'DC': 247912110, 'SF': 247912112}
-content = {'service': 'puppyspot-content', 'ID' : 31, 'overall_status': 23648641, 'DC': 23648640, 'SF': 23648655}
-for_sale = {'service': 'puppyspot-for-sale', 'ID' : 74, 'overall_status': 330603119, 'DC': 330603118, 'SF': 330603120}
+main_site = {'service': 'main_site.com','ID': 1, 'overall_status': 5,'DC':4, 'SF': 23789978}
+about_us = {'service': 'about-us', 'ID' : 72, 'overall_status': 247912111, 'DC': 247912110, 'SF': 247912112}
+content = {'service': 'content', 'ID' : 31, 'overall_status': 23648641, 'DC': 23648640, 'SF': 23648655}
+for_sale = {'service': 'for-sale', 'ID' : 74, 'overall_status': 330603119, 'DC': 330603118, 'SF': 330603120}
 leadtacker = {'service': 'leadtracker', 'ID' : 67, 'overall_status': 181661087, 'DC': 181661086, 'SF': 181661088}
 
 # Create dictionary array of each website
-websites = [puppyspot_main, about_us, content, for_sale, leadtacker]
+websites = [main_site, about_us, content, for_sale, leadtacker]
 
 ### FUNCTION DEFINITIONS ###
 # This function returns the timestamps needed to make the API calls
@@ -137,7 +137,7 @@ def createTable(compileDataRootDir,file_name,location,table):
     if location == 'overall':
         args =['/home/ec2-user/scripts/python/logicmonitor/pgfutter','--host', REDSHIFT_HOST, '--db', DB_NAME, '--port', REDSHIFT_PORT, '--table', 'overall', '--schema', SCHEMA, '--user', REDSHIFT_USER, '--pw', REDSHIFT_PASS, 'csv', file_name]
     else:
-         args =['/home/ec2-user/scripts/python/logicmonitor/pgfutter','--host', 'ppb-dw02-analytics.chupgbdb0r1u.us-west-2.redshift.amazonaws.com', '--db', 'stitch', '--port', '5439', '--table', 'response_time', '--schema', 'custom', '--user', 'psanalyticsuser', '--pw', 'RPXRt7vL3r!', 'csv', file_name]
+        args =['/home/ec2-user/scripts/python/logicmonitor/pgfutter','--host', REDSHIFT_HOST, '--db', DB_NAME, '--port', REDSHIFT_PORT, '--table', 'response-time', '--schema', SCHEMA, '--user', REDSHIFT_USER, '--pw', REDSHIFT_PASS, 'csv', file_name]
 
 
     subprocess.call(args)
