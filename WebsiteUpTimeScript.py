@@ -252,12 +252,12 @@ def UploadToRedshift(compileDataRootDir,file_name,location):
 
     # Copying file depending on location
     if location == 'overall':
-        SQL_COMMAND = "copy custom.overall from 's3://logicmonitor-data/overall-status/" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
+        SQL_COMMAND = "copy custom.overall from 'BUCKET_NAME_HERE" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
         cur.execute(SQL_COMMAND)
         cur.execute("commit;")
         print("Copy executed overall table fine!")
     else:
-        SQL_COMMAND = "copy custom.response_time from 's3://logicmonitor-data/response-time/" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
+        SQL_COMMAND = "copy custom.response_time from 'BUCKET_NAME_HERE" + file_name + "' credentials 'aws_access_key_id=" + ID + ";aws_secret_access_key=" + SECRET_ACCESS_KEY + "' csv;"
         cur.execute(SQL_COMMAND)
         cur.execute("commit;")
         print("Copy executed to response-time table fine!")
