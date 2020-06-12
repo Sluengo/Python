@@ -6,8 +6,8 @@ def lambda_handler(event, context):
     
     TARGET_GROUP_ARN_DICTIONARY = {
 
-    'consumer-prod-': 'arn:aws:elasticloadbalancing:us-west-2:172136542978:targetgroup/puppyspot-targets-core-prod/cc8f9632739f7370',
-    'API-prod-': 'arn:aws:elasticloadbalancing:us-west-2:172136542978:targetgroup/puppyspot-targets-api-prod/2cea95c1a62ed79c'
+    'consumer-prod-': 'TARGET_GROUP_ARN_GOES_HERE',
+    'API-prod-': 'TARGET_GROUP_ARN_GOES_HERE'
 
     }
     
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
                 print("This is the CNAME:")
                 print(env_dns)
                 
-                if (env_dns == "psconsumerprod.us-west-2.elasticbeanstalk.com" or env_dns == "psapi-prod.us-west-2.elasticbeanstalk.com"):
+                if (env_dns == "CONSUMER_BEANSTALK_DNS_GOES_HERE" or env_dns == "API_BEANSTALK_DNS_GOES_HERE"):
                     return env_name
                     
         raise Exception('No Suitable Environment Found')
